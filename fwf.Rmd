@@ -1,0 +1,105 @@
+---
+title: "R Notebook"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(descr)
+library(disk.frame)
+library(sparklyr)
+```
+
+
+```{r}
+fwf_sample <- readr_example("fwf-sample.txt")
+fwf_sample
+```
+
+```{r}
+read_file(fwf_sample) %>% write_file("data/fwf_sample.txt")
+```
+
+
+```{r}
+read_fwf(fwf_sample, fwf_widths(c(20, 10, 12), c("name", "state", "ssn")))
+```
+
+
+```{r}
+read_fwf(fwf_sample, fwf_cols(name = c(1, 20),
+                              state=c(21,22),
+                              ssn = c(30, 42)))
+```
+
+```{r}
+read_fwf(fwf_sample, fwf_positions(c(1,21,30),c(20,22,42),
+                                   c("name", "state", "ssn")))
+```
+
+```{r}
+fwf2csv("data/fwf_sample.txt",
+        "data/fwf_samples.csv",
+        names = c("name", "state", "ssn"),
+        begin = c(1,21,30),
+        end = c(20,22,42))
+
+```
+
+```{r}
+df_long <- tibble(x=1:10e6,
+                  y=runif(1:10e6),
+                  name="dan")
+```
+
+Cria arquivo
+
+```{r}
+df_long_fwf <- df_long %>%
+  head %>%
+  mutate(fwf=sprintf("%-10s%-20s%-15s",x,y,name))
+df_long_fwf %>% pull(fwf) %>% write_lines("data/df_long.fwf")
+```
+
+```{r}
+read_lines("data/df_long.fwf",n_max=10)
+```
+
+```{r}
+read_lines("data/df_long.fwf",n_max=10) %>% write_lines("data/df_long_short.fwf")
+```
+
+
+```{r}
+fwf2csv("data/df_long_short.fwf",
+        "data/df_long_short_transf.csv",
+        names = c("id", "rand", "nome"),
+        begin = c(1,11,31),
+        end = c(10,30,34))
+```
+
+
+```{r}
+read_delim("data/df_long_short.csv",delim="\t")
+```
+
+```{r}
+fwf2csv("data/df_long.fwf",
+        "data/df_long_transf.csv",
+        names = c("id", "rand", "nome"),
+        begin = c(1,11,31),
+        end = c(10,30,34))
+```
+
+
+
+```{r}
+setup_disk.frame()
+# this will allow unlimited amount of data to be passed from worker to worker
+options(future.globals.maxSize = Inf)
+```
+
+```{r}
+df.df <- disk.frame::csv_to_disk.frame("data/df_long_transf.csv", overwrite=T, backend = "readr",delim="\t")
+```
+
